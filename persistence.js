@@ -1,6 +1,6 @@
 const fs = require('fs/promises')
 /**
- * Return a list of all employees loaded from the storage.
+ * Return a list of all employees loaded from the file.
  * @returns {Array<{ employeeId: string, name: string, phone: string }>} List of employees
  */
 async function getAllEmployees() {
@@ -8,6 +8,27 @@ async function getAllEmployees() {
     result = JSON.parse(rawData)
     return result
 }
+
+/**
+ * Return a list of all assignments loaded from the file.
+ * @returns {Array<{}>} 
+ */
+async function getAllAssignments() {
+    let rawData = await fs.readFile('assignments.json')
+    result = JSON.parse(rawData)
+    return result
+}
+
+/**
+ * Return the max daily hours limit loaded from the file.
+ * @returns maxDailyHours 
+ */
+async function getMaxDailyHours() {
+    let rawData = await fs.readFile('config.json')
+    result = JSON.parse(rawData)
+    return result.maxDailyHours
+}
+
 
 
 /**
@@ -91,16 +112,14 @@ async function findAssignment(empId, shiftId) {
 
 
 /**
- * Record a new assignment of an employee to a shift. This functions does not
- * check for existing combinations so it is possible to double book an employee,
- * use assignShift instead to check for this.
+ * Record a new assignment of an employee to a shift. 
  * @param {string} empId 
  * @param {string} shiftId 
  */
 async function addAssignment(empId, shiftId) {
     let rawData = await fs.readFile('assignments.json')
     assignmentList = JSON.parse(rawData)
-    assignmentList.push({employeeId: empId, shiftId: shiftId})
+    assignmentList.push({ employeeId: empId, shiftId: shiftId })
     await fs.writeFile('assignments.json', JSON.stringify(assignmentList, null, 4))
 }
 
@@ -114,38 +133,8 @@ async function addEmployeeRecord(employeeList) {
     await fs.writeFile('employees.json', JSON.stringify(employeeList, null, 4))
 }
 
-/**
- * This function attempts to assign a shift to an employee. This function checks to ensure
- * that the employee exists, the shift exists, and that the combination employee/shift has 
- * not already been recorded.
- * 
- * The function currently returns string messages indicating whether the operation was successful
- * or why it failed.  A serious improvement would be to use exceptions; this will be refactored
- * at a later time.
- * 
- * @param {string} empId 
- * @param {string} shiftId 
- * @returns {string} A message indicating the problem of the word "Ok"
- */
-async function assignShift(empId, shiftId) {
-    // check that empId exists
-    let employee = await findEmployee(empId)
-    if (!employee) {
-        return "Employee does not exist"
-    }
-    // check that shiftId exists
-    let shift = await findShift(shiftId)
-    if (!shift) {
-        return "Shift does not exist"
-    }
-    // check that empId,shiftId doesn't exist
-    let assignment = await findAssignment(empId, shiftId)
-    if (assignment) {
-        return "Employee already assigned to shift"
-    }
-    // add empId,shiftId into the bridge
-    await addAssignment(empId, shiftId)
-    return "Ok"
-}
 
-module.exports = {getAllEmployees, getEmployeeShifts, addEmployeeRecord, assignShift }
+
+
+
+module.exports = { getAllEmployees, getEmployeeShifts, addEmployeeRecord, addAssignment, findAssignment, findShift, findEmployee , getAllAssignments, getMaxDailyHours}
