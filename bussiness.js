@@ -18,8 +18,7 @@ async function addEmployeeRecord(emp) {
         }
     }
     emp.employeeId = `E${String(maxId + 1).padStart(3, '0')}`
-    employeeList.push(emp)
-    await persistence.addEmployeeRecord(employeeList)
+    await persistence.addEmployeeRecord(emp)
 }
 
 /**

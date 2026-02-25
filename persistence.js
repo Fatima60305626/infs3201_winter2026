@@ -1,11 +1,33 @@
-const fs = require('fs/promises')
+const mongodb = require('mongodb')
+let fs = require("fs/promises")
+
+let client = undefined
+let db = undefined
+let shifts = undefined
+let assignments = undefined
+let employees = undefined
+
+/**
+ * Connect to MongoDB
+ */
+async function connectDatabase() {
+    if (!client) {
+        client = new mongodb.MongoClient("mongodb+srv://60305626:12class34@s-60305626.izf0a7o.mongodb.net/")
+        await client.connect()
+        db = client.db('infs3201_winter2026')
+        shifts = db.collection("shifts")
+        assignments = db.collection("assignments")
+        employees = db.collection("employees")
+    }
+}
+
 /**
  * Return a list of all employees loaded from the file.
  * @returns {Array<{ employeeId: string, name: string, phone: string }>} List of employees
  */
 async function getAllEmployees() {
-    let rawData = await fs.readFile('employees.json')
-    result = JSON.parse(rawData)
+    await connectDatabase()
+    let result = await employees.find().toArray()
     return result
 }
 
@@ -14,8 +36,8 @@ async function getAllEmployees() {
  * @returns {Array<{}>} 
  */
 async function getAllAssignments() {
-    let rawData = await fs.readFile('assignments.json')
-    result = JSON.parse(rawData)
+    await connectDatabase()
+    let result = await assignments.find().toArray()
     return result
 }
 
@@ -29,24 +51,19 @@ async function getMaxDailyHours() {
     return result.maxDailyHours
 }
 
-
-
 /**
  * Find a single employee given their ID number.
  * @param {string} empId 
  * @returns {{ employeeId: string, name: string, phone: string }|undefined}
  */
 async function findEmployee(empId) {
-    let rawData = await fs.readFile('employees.json')
-    employeeList = JSON.parse(rawData)
-    for (let emp of employeeList) {
-        if (emp.employeeId === empId) {
-            return emp
-        }
+    await connectDatabase()
+    let employee = await employees.findOne({ employeeId: empId })
+    if (employee){
+        return employee
     }
     return undefined
 }
-
 
 /**
  * Get a single shift given the shiftId
@@ -54,16 +71,13 @@ async function findEmployee(empId) {
  * @returns {{shiftId:string, date:string, startTime:string, endTime:string}|undefined}
  */
 async function findShift(shiftId) {
-    let rawData = await fs.readFile('shifts.json')
-    shiftList = JSON.parse(rawData)
-    for (let shift of shiftList) {
-        if (shift.shiftId == shiftId) {
-            return shift
-        }
+    await connectDatabase()
+    let shift = await shifts.findOne({ shiftId: shiftId })
+    if (shift){
+        return shift
     }
     return undefined
 }
-
 
 /**
  * Get a list of shiftIDs for an employee.
@@ -71,27 +85,19 @@ async function findShift(shiftId) {
  * @returns {Array<{string}>}
  */
 async function getEmployeeShifts(empId) {
-    let rawData = await fs.readFile('assignments.json')
-    assignmentList = JSON.parse(rawData)
+    await connectDatabase()
+
+    let assignmentList = await assignments.find({ employeeId: empId }).toArray()
+
     let shiftIds = []
-    for (let asn of assignmentList) {
-        if (asn.employeeId == empId) {
-            shiftIds.push(asn.shiftId)
-        }
+    for (let a of assignmentList) {
+        shiftIds.push(a.shiftId)
     }
 
-    rawData = await fs.readFile('shifts.json')
-    shiftList = JSON.parse(rawData)
-    let shiftDetails = []
-    for (let sh of shiftList) {
-        if (shiftIds.includes(sh.shiftId)) {
-            shiftDetails.push(sh)
-        }
-    }
+    let shiftDetails = await shifts.find({ shiftId: { $in: shiftIds } }).toArray()
 
     return shiftDetails
 }
-
 
 /**
  * Find a shift object give the employeeId and the shiftId.
@@ -100,28 +106,35 @@ async function getEmployeeShifts(empId) {
  * @returns {{employeeId:string, shiftId:string}|undefined}
  */
 async function findAssignment(empId, shiftId) {
-    let rawData = await fs.readFile('assignments.json')
-    assignmentList = JSON.parse(rawData)
-    for (let asn of assignmentList) {
-        if (asn.employeeId === empId && asn.shiftId === shiftId) {
-            return asn
-        }
+    await connectDatabase()
+    let assignment = await assignments.findOne({
+        employeeId: empId,
+        shiftId: shiftId
+    })
+    if (assignment){
+        return assignment
     }
     return undefined
 }
-
 
 /**
  * Add a new employee record to the system. The empId is automatically generated based
  * on the next available ID number from what is already in the file.
  * @param {{name:string, phone:string}} emp 
  */
-async function addEmployeeRecord(employeeList) {
-    await fs.writeFile('employees.json', JSON.stringify(employeeList, null, 4))
+async function addEmployeeRecord(emp) {
+    await connectDatabase()
+
+    await employees.insertOne(emp)
 }
 
-
-
-
-
-module.exports = { getAllEmployees, getEmployeeShifts, addEmployeeRecord, findAssignment, findShift, findEmployee , getAllAssignments, getMaxDailyHours}
+module.exports = { 
+    getAllEmployees, 
+    getEmployeeShifts, 
+    addEmployeeRecord, 
+    findAssignment, 
+    findShift, 
+    findEmployee, 
+    getAllAssignments, 
+    getMaxDailyHours
+}
