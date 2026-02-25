@@ -112,19 +112,6 @@ async function findAssignment(empId, shiftId) {
 
 
 /**
- * Record a new assignment of an employee to a shift. 
- * @param {string} empId 
- * @param {string} shiftId 
- */
-async function addAssignment(empId, shiftId) {
-    let rawData = await fs.readFile('assignments.json')
-    assignmentList = JSON.parse(rawData)
-    assignmentList.push({ employeeId: empId, shiftId: shiftId })
-    await fs.writeFile('assignments.json', JSON.stringify(assignmentList, null, 4))
-}
-
-
-/**
  * Add a new employee record to the system. The empId is automatically generated based
  * on the next available ID number from what is already in the file.
  * @param {{name:string, phone:string}} emp 
@@ -137,4 +124,4 @@ async function addEmployeeRecord(employeeList) {
 
 
 
-module.exports = { getAllEmployees, getEmployeeShifts, addEmployeeRecord, addAssignment, findAssignment, findShift, findEmployee , getAllAssignments, getMaxDailyHours}
+module.exports = { getAllEmployees, getEmployeeShifts, addEmployeeRecord, findAssignment, findShift, findEmployee , getAllAssignments, getMaxDailyHours}

@@ -40,20 +40,6 @@ async function addNewEmployee() {
     console.log('Employee added...')
 }
 
-/**
- * The UI function for assigning an employee to a shift.
- */
-async function scheduleEmployee() {
-    let empId = prompt('Enter employee ID: ')
-    let shiftId = prompt(' Enter shift ID: ')
-    let result = await bussiness.assignShift(empId, shiftId)
-    if (result === 'Ok') {
-        console.log("Shift Recorded")
-    }
-    else {
-        console.log(result)
-    }
-}
 
 /**
  * The UI function for displaying the menu and calling the various UI functions.  The function
@@ -63,9 +49,8 @@ async function displayMenu() {
     while (true) {
         console.log('1. Show all employees')
         console.log('2. Add new employee')
-        console.log('3. Assign employee to shift')
-        console.log('4. View employee schedule')
-        console.log('5. Exit')
+        console.log('3. View employee schedule')
+        console.log('4. Exit')
         let choice = Number(prompt("What is your choice> "))
         if (choice === 1) {
             await displayEmployees()
@@ -76,14 +61,10 @@ async function displayMenu() {
             console.log('\n\n')
         }
         else if (choice == 3) {
-            await scheduleEmployee()
-            console.log('\n\n')
-        }
-        else if (choice == 4) {
             await getEmployeeSchedule()
             console.log('\n\n')
         }
-        else if (choice == 5) {
+        else if (choice == 4) {
             break
         }
         else {
