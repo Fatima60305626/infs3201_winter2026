@@ -12,10 +12,14 @@ app.set("view engine", "handlebars")
 
 app.use(express.urlencoded({ extended: true }))
 
-
-
-
-
+/**
+ * GET /
+ * Retrieves all employees and renders the home page.
+ *
+ * @async
+ * @function
+ * @returns {Promise<void>}
+ */
 app.get("/", async(req, res) => {
 
   let employees = await business.getAllEmployees()
@@ -25,7 +29,17 @@ app.get("/", async(req, res) => {
 });
 
 
-
+/**
+ * GET /employee/:id
+ * Retrieves a specific employee and their shifts,
+ * sorts shifts by date and start time,
+ * determines whether each shift is morning or not,
+ * and renders the detail page.
+ *
+ * @async
+ * @function
+ * @returns {Promise<void>}
+ */
 app.get("/employee/:id", async(req, res) => {
 
   let employee = await business.findEmployee(req.params.id)
@@ -80,7 +94,14 @@ app.get("/employee/:id", async(req, res) => {
 });
 
 
-
+/**
+ * GET /edit/:id
+ * Retrieves employee data and renders the edit page.
+ *
+ * @async
+ * @function
+ * @returns {Promise<void>}
+ */
 app.get("/edit/:id", async(req, res) => {
 
   let employee = await business.findEmployee(req.params.id)
@@ -94,7 +115,18 @@ app.get("/edit/:id", async(req, res) => {
 });
 
 
-
+/**
+ * POST /edit/:id
+ * Validates employee name and phone number,
+ * updates the employee record,
+ * and redirects to home page.
+ *
+ * Phone format must be: 0000-0000
+ *
+ * @async
+ * @function
+ * @returns {Promise<void>}
+ */
 app.post("/edit/:id", async(req, res) => {
 
   let name = req.body.name.trim()
@@ -136,7 +168,12 @@ app.post("/edit/:id", async(req, res) => {
 
 });
 
-
+/**
+ * Starts the Express server on port 8000.
+ *
+ * @function
+ * @returns {void}
+ */
 app.listen(8000, () => {
   console.log("Server running on port 8000")
 });

@@ -128,6 +128,15 @@ async function addEmployeeRecord(emp) {
     await employees.insertOne(emp)
 }
 
+/**
+ * Updates an employee's name and phone number.
+ *
+ * @async
+ * @function updateEmployee
+ * @param {string} empId - The unique identifier of the employee
+ * @param {string} name - The updated employee name
+ * @param {string} phone - The updated phone number (format: 0000-0000)
+ */
 async function updateEmployee(empId, name, phone) {
    await connectDatabase()
    await employees.updateOne({

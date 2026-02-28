@@ -52,6 +52,16 @@ async function findEmployee(empId) {
     return persistence.findEmployee(empId)
 }
 
+/**
+ * Updates an employee's name and phone number.
+ *
+ * @async
+ * @function updateEmployee
+ * @param {string} empId - The unique identifier of the employee
+ * @param {string} name - The updated employee name
+ * @param {string} phone - The updated phone number (format: 0000-0000)
+ * @returns {Promise<void>} Resolves when the employee is successfully updated
+ */
 async function updateEmployee(empId, name, phone) {
     await persistence.updateEmployee(empId, name , phone)
 }
