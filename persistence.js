@@ -128,6 +128,13 @@ async function addEmployeeRecord(emp) {
     await employees.insertOne(emp)
 }
 
+async function updateEmployee(empId, name, phone) {
+   await connectDatabase()
+   await employees.updateOne({
+    employeeId: empId},{$set:{name:name, phone:phone}})
+    
+}
+
 module.exports = { 
     getAllEmployees, 
     getEmployeeShifts, 
@@ -136,5 +143,6 @@ module.exports = {
     findShift, 
     findEmployee, 
     getAllAssignments, 
-    getMaxDailyHours
+    getMaxDailyHours,
+    updateEmployee
 }

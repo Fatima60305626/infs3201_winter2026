@@ -42,6 +42,19 @@ async function getAllEmployees() {
 
 }
 
+/**
+ * Find a single employee given their ID number.
+ * @param {string} empId 
+ * @returns {{ employeeId: string, name: string, phone: string }|undefined}
+ */
+async function findEmployee(empId) {
+   
+    return persistence.findEmployee(empId)
+}
+
+async function updateEmployee(empId, name, phone) {
+    await persistence.updateEmployee(empId, name , phone)
+}
 
 
-module.exports = { addEmployeeRecord, getEmployeeShifts, getAllEmployees }
+module.exports = { addEmployeeRecord, getEmployeeShifts, getAllEmployees, findEmployee, updateEmployee}
