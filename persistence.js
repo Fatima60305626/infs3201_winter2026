@@ -1,11 +1,13 @@
 const mongodb = require('mongodb')
 let fs = require("fs/promises")
 
+
 let client = undefined
 let db = undefined
 let shifts = undefined
-let assignments = undefined
 let employees = undefined
+let sessions = undefined
+let users = undefined
 
 /**
  * Connect to MongoDB
@@ -16,8 +18,10 @@ async function connectDatabase() {
         await client.connect()
         db = client.db('infs3201_winter2026')
         shifts = db.collection("shifts")
-        assignments = db.collection("assignments")
         employees = db.collection("employees")
+        sessions = db.collection("sessions")
+        users = db.collection("users")
+
     }
 }
 
@@ -58,7 +62,8 @@ async function getMaxDailyHours() {
  */
 async function findEmployee(empId) {
     await connectDatabase()
-    let employee = await employees.findOne({ employeeId: empId })
+    let employeeId = new mongodb.ObjectId(empId)
+    let employee = await employees.findOne({ _id: employeeId })
     if (employee){
         return employee
     }
@@ -72,7 +77,8 @@ async function findEmployee(empId) {
  */
 async function findShift(shiftId) {
     await connectDatabase()
-    let shift = await shifts.findOne({ shiftId: shiftId })
+    let shiftObjectId = new mongodb.ObjectId(shiftId)
+    let shift = await shifts.findOne({ _id: shiftObjectId })
     if (shift){
         return shift
     }
@@ -86,15 +92,8 @@ async function findShift(shiftId) {
  */
 async function getEmployeeShifts(empId) {
     await connectDatabase()
-
-    let assignmentList = await assignments.find({ employeeId: empId }).toArray()
-
-    let shiftIds = []
-    for (let a of assignmentList) {
-        shiftIds.push(a.shiftId)
-    }
-
-    let shiftDetails = await shifts.find({ shiftId: { $in: shiftIds } }).toArray()
+    let employeeId = new mongodb.ObjectId(empId)
+    let shiftDetails = await shifts.find({employees: employeeId}).toArray()
 
     return shiftDetails
 }
@@ -139,8 +138,61 @@ async function addEmployeeRecord(emp) {
  */
 async function updateEmployee(empId, name, phone) {
    await connectDatabase()
-   await employees.updateOne({
-    employeeId: empId},{$set:{name:name, phone:phone}})
+
+   let employeeId = new mongodb.ObjectId(empId)
+   await employees.updateOne({_id: employeeId},{$set:{name:name, phone:phone}})
+    
+}
+
+/**
+ * Saves a session in the database.
+ * @param {string} uuid - The unique session key.
+ * @param {Date} expiry - The expiry date of the session.
+ * @param {Object} data - The session data.
+ */
+async function saveSession(uuid, expiry, data) {
+    await connectDatabase()
+    await session.insertOne({
+        SessionKey: uuid,
+        Expiry: expiry,
+        Data: data
+    })
+}
+
+/**
+ * Retrieves session data based on the session key.
+ * @param {string} key - The session key.
+ * @returns {Object} - Returns the session data if found, otherwise null.
+ */
+async function getSessionData(key) {
+    await connectDatabase()
+    let result = await session.find({ SessionKey: key })
+    let resultData = await result.toArray()
+    return resultData[0]
+}
+
+/**
+ * Deletes a session from the database based on the session key.
+ * @param {string} key - The session key.
+ */
+async function deleteSession(key) {
+    await session.deleteOne({ SessionKey: key })
+}
+
+/**
+ * Retrieves user details based on the provided username.
+ * @param {string} username - The username to look up.
+ * @returns {Object} - Returns the user details if found, otherwise null.
+ */
+async function getUserDetails(username) {
+    await connectDatabase()
+    let result = await users.find({ username: username })
+    let resultData = await result.toArray()
+    return resultData[0]
+}
+async function extendSession(sessionId) {
+    let newExpiry = new Date(Date.now()+5*60*1000)
+    await sessions.updateOne({uuid:sessionId}, {$set:{expiry:newExpiry}})
     
 }
 
@@ -153,5 +205,11 @@ module.exports = {
     findEmployee, 
     getAllAssignments, 
     getMaxDailyHours,
-    updateEmployee
+    updateEmployee,
+    saveSession,
+    getSessionData,
+    deleteSession,
+    getUserDetails,
+    extendSession
+
 }

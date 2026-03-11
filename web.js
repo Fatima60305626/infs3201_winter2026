@@ -12,6 +12,71 @@ app.set("view engine", "handlebars")
 
 app.use(express.urlencoded({ extended: true }))
 
+
+
+
+
+
+app.get("/login", async(req, res) => {
+
+  res.render("login", {layout:undefined })
+
+});
+
+
+app.post('/login', async (req, res) => {
+let username = req.body.username
+let password = req.body.password
+
+
+let result = await business.validateCredentials(username, password)
+
+if (result) {
+
+    let session = await business.startSession({
+        username: username
+    })
+
+    res.cookie('session', session.uuid, { expires: session.expiry })
+
+    res.redirect('/')
+    return
+}
+
+// invalid login
+res.redirect('/login?message=Invalid%20Credentials')
+
+
+})
+
+async function checkSession(req, res, next) {
+    let sessionId = req.cookies.session
+
+    if (!sessionId) {
+        res.redirect("/login?message=Please login first")
+        return
+    }
+
+    let session = await business.getSession(sessionId)
+
+    if (!session) {
+        res.redirect("/login?message=Invalid session")
+        return
+    }
+
+    if (session.expiry < new Date()) {
+        res.redirect("/login?message=Session expired")
+        return
+    }
+
+    // extend session by 5 minutes
+    await business.extendSession(sessionId)
+
+    req.username = session.username
+
+    next()
+}
+
 /**
  * GET /
  * Retrieves all employees and renders the home page.
@@ -20,7 +85,7 @@ app.use(express.urlencoded({ extended: true }))
  * @function
  * @returns {Promise<void>}
  */
-app.get("/", async(req, res) => {
+app.get("/", checkSession, async(req, res) => {
 
   let employees = await business.getAllEmployees()
 
@@ -40,7 +105,7 @@ app.get("/", async(req, res) => {
  * @function
  * @returns {Promise<void>}
  */
-app.get("/employee/:id", async(req, res) => {
+app.get("/employee/:id", checkSession,async(req, res) => {
 
   let employee = await business.findEmployee(req.params.id)
 
@@ -102,7 +167,7 @@ app.get("/employee/:id", async(req, res) => {
  * @function
  * @returns {Promise<void>}
  */
-app.get("/edit/:id", async(req, res) => {
+app.get("/edit/:id",checkSession,  async(req, res) => {
 
   let employee = await business.findEmployee(req.params.id)
 
@@ -127,7 +192,7 @@ app.get("/edit/:id", async(req, res) => {
  * @function
  * @returns {Promise<void>}
  */
-app.post("/edit/:id", async(req, res) => {
+app.post("/edit/:id", checkSession, async(req, res) => {
 
   let name = req.body.name.trim()
   let phone = req.body.phone.trim()
