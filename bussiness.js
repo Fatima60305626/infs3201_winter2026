@@ -1,26 +1,7 @@
 const persistence = require("./persistence.js")
 const crypto = require("crypto")
 
-/**
- * Adds a new employee record and Generates a unique employee ID 
- * in the format "E###" based on the highest existing employee ID, 
- * then stores the updated list.
- *
- * @param {Object} emp - The employee object to be added.
- * @returns {Promise<void>} Resolves when the employee record is successfully stored.
- */
-async function addEmployeeRecord(emp) {
-    let maxId = 0
-    let employeeList = await persistence.getAllEmployees()
-    for (let e of employeeList) {
-        let eid = Number(e.employeeId.slice(1))
-        if (eid > maxId) {
-            maxId = eid
-        }
-    }
-    emp.employeeId = `E${String(maxId + 1).padStart(3, '0')}`
-    await persistence.addEmployeeRecord(emp)
-}
+
 
 /**
  * Retrieves all shift assignments for a specific employee.
@@ -123,14 +104,40 @@ async function deleteSession(key) {
     await persistence.deleteSession(key)
 }
 
+/**
+ * Extends the expiry time of an existing session.
+ *
+ * @async
+ * @function
+ * @param {string} sessionId - Unique identifier of the session to extend
+ * @returns {Promise<void>}
+ */
 async function extendSession(sessionId) {
     await persistence.extendSession(sessionId)
     
 }
+/**
+ * Adds a security log entry to the system.
+ * Used to track user actions such as requests and access attempts.
+ *
+ * @async
+ * @function
+ * @param {Object} log - Log object containing request details
+ * @param {Date} log.timestamp - Time when the action occurred
+ * @param {string} log.username - Username associated with the action
+ * @param {string} log.url - Requested URL
+ * @param {string} log.method - HTTP method used (GET, POST)
+ * @returns {Promise<void>}
+ */
+async function addSecurityLog(log) {
+    await persistence.addSecurityLog(log)  
+}
 
 
-module.exports = { addEmployeeRecord, getEmployeeShifts, getAllEmployees, 
+
+module.exports = { getEmployeeShifts, getAllEmployees, 
     findEmployee, updateEmployee,
     validateCredentials,startSession,
-     getSessionData,deleteSession,extendSession
+     getSessionData,deleteSession,extendSession,
+     addSecurityLog
 }

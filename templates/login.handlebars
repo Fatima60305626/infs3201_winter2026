@@ -6,12 +6,14 @@
     <title>Document</title>
 </head>
 <body>
-    <form action="Post">
+    <form action="/login" method="post">
         <label for="">Username: </label>
-        <input type="text" name="username"><br>
+        <input type="text" name="username"><br> <br>
          <label for="">Password: </label>
-        <input type="password" name="password">
+        <input type="password" name="password"><br><br>
+        <input type="submit" value="login">
         
         </form>
+        <p style="color: red;">{{message}}</p>
 </body>
 </html>

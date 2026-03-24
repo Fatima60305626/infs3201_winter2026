@@ -8,7 +8,7 @@ let shifts = undefined
 let employees = undefined
 let sessions = undefined
 let users = undefined
-
+let securityLogs =undefined
 /**
  * Connect to MongoDB
  */
@@ -21,9 +21,11 @@ async function connectDatabase() {
         employees = db.collection("employees")
         sessions = db.collection("sessions")
         users = db.collection("users")
+        securityLogs = db.collection("security_log")
 
     }
 }
+
 
 /**
  * Return a list of all employees loaded from the file.
@@ -35,15 +37,7 @@ async function getAllEmployees() {
     return result
 }
 
-/**
- * Return a list of all assignments loaded from the file.
- * @returns {Array<{}>} 
- */
-async function getAllAssignments() {
-    await connectDatabase()
-    let result = await assignments.find().toArray()
-    return result
-}
+
 
 /**
  * Return the max daily hours limit loaded from the file.
@@ -98,34 +92,9 @@ async function getEmployeeShifts(empId) {
     return shiftDetails
 }
 
-/**
- * Find a shift object give the employeeId and the shiftId.
- * @param {string} empId 
- * @param {string} shiftId 
- * @returns {{employeeId:string, shiftId:string}|undefined}
- */
-async function findAssignment(empId, shiftId) {
-    await connectDatabase()
-    let assignment = await assignments.findOne({
-        employeeId: empId,
-        shiftId: shiftId
-    })
-    if (assignment){
-        return assignment
-    }
-    return undefined
-}
 
-/**
- * Add a new employee record to the system. The empId is automatically generated based
- * on the next available ID number from what is already in the file.
- * @param {{name:string, phone:string}} emp 
- */
-async function addEmployeeRecord(emp) {
-    await connectDatabase()
 
-    await employees.insertOne(emp)
-}
+
 
 /**
  * Updates an employee's name and phone number.
@@ -152,7 +121,7 @@ async function updateEmployee(empId, name, phone) {
  */
 async function saveSession(uuid, expiry, data) {
     await connectDatabase()
-    await session.insertOne({
+    await sessions.insertOne({
         SessionKey: uuid,
         Expiry: expiry,
         Data: data
@@ -166,9 +135,9 @@ async function saveSession(uuid, expiry, data) {
  */
 async function getSessionData(key) {
     await connectDatabase()
-    let result = await session.find({ SessionKey: key })
-    let resultData = await result.toArray()
-    return resultData[0]
+    let result = await sessions.findOne({ SessionKey: key })
+   
+    return result
 }
 
 /**
@@ -176,7 +145,8 @@ async function getSessionData(key) {
  * @param {string} key - The session key.
  */
 async function deleteSession(key) {
-    await session.deleteOne({ SessionKey: key })
+    await connectDatabase()
+    await sessions.deleteOne({ SessionKey: key })
 }
 
 /**
@@ -190,26 +160,54 @@ async function getUserDetails(username) {
     let resultData = await result.toArray()
     return resultData[0]
 }
+
+/**
+ * Extends the expiry time of a session by 5 minutes.
+ * Connects to the database and updates the session record.
+ *
+ * @async
+ * @function
+ * @param {string} sessionId - Unique session identifier (SessionKey)
+ * @returns {Promise<void>}
+ */
 async function extendSession(sessionId) {
+    await connectDatabase()
+
     let newExpiry = new Date(Date.now()+5*60*1000)
-    await sessions.updateOne({uuid:sessionId}, {$set:{expiry:newExpiry}})
+    await sessions.updateOne({SessionKey:sessionId}, {$set:{Expiry:newExpiry}})
     
+}
+
+/**
+ * Inserts a security log entry into the database.
+ * Stores information about user actions.
+ *
+ * @async
+ * @function
+ * @param {Object} log - Log object containing request details
+ * @param {Date} log.timestamp - Time when the action occurred
+ * @param {string} log.username - Username performing the action
+ * @param {string} log.url - Requested URL
+ * @param {string} log.method - HTTP method used (GET, POST)
+ * @returns {Promise<void>}
+ */
+async function addSecurityLog(log) {
+    await connectDatabase()
+    await securityLogs.insertOne(log)
 }
 
 module.exports = { 
     getAllEmployees, 
     getEmployeeShifts, 
-    addEmployeeRecord, 
-    findAssignment, 
     findShift, 
-    findEmployee, 
-    getAllAssignments, 
+    findEmployee,  
     getMaxDailyHours,
     updateEmployee,
     saveSession,
     getSessionData,
     deleteSession,
     getUserDetails,
-    extendSession
+    extendSession,
+    addSecurityLog
 
 }

@@ -1,6 +1,7 @@
 const express = require("express")
 const handlebars = require("express-handlebars")
 const business = require("./bussiness")
+const cookieParser = require('cookie-parser')
 
 const app = express()
 app.set('views', __dirname + "/templates")
@@ -11,19 +12,41 @@ app.set("view engine", "handlebars")
 
 
 app.use(express.urlencoded({ extended: true }))
+app.use(cookieParser())
 
 
 
 
-
-
+/**
+ * GET /login
+ * Renders the login page with an optional message.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Express request object
+ * @param {string} [req.query.message] - Optional message to display on login page
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
 app.get("/login", async(req, res) => {
-
-  res.render("login", {layout:undefined })
+  let message = req.query.message
+  res.render("login", {message:message, layout:undefined })
 
 });
 
-
+/**
+ * POST /login
+ * Authenticates user credentials and creates a session.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Form data from login request
+ * @param {string} req.body.username - Username entered by user
+ * @param {string} req.body.password - Password entered by user
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
 app.post('/login', async (req, res) => {
 let username = req.body.username
 let password = req.body.password
@@ -48,7 +71,19 @@ res.redirect('/login?message=Invalid%20Credentials')
 
 
 })
-
+/**
+ * Middleware to validate user session.
+ * Ensures the user is authenticated before accessing protected routes.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Express request object
+ * @param {Object} req.cookies - Cookies sent with the request
+ * @param {string} req.cookies.session - Session ID stored in cookies
+ * @param {Object} res - Express response object
+ * @param {Function} next - Next middleware function
+ * @returns {Promise<void>}
+ */
 async function checkSession(req, res, next) {
     let sessionId = req.cookies.session
 
@@ -57,14 +92,14 @@ async function checkSession(req, res, next) {
         return
     }
 
-    let session = await business.getSession(sessionId)
+    let session = await business.getSessionData(sessionId)
 
     if (!session) {
         res.redirect("/login?message=Invalid session")
         return
     }
 
-    if (session.expiry < new Date()) {
+    if (session.Expiry < new Date()) {
         res.redirect("/login?message=Session expired")
         return
     }
@@ -72,10 +107,38 @@ async function checkSession(req, res, next) {
     // extend session by 5 minutes
     await business.extendSession(sessionId)
 
-    req.username = session.username
+    req.username = session.Data.username
 
     next()
 }
+
+/**
+ * Middleware to log security related request information.
+ * Records user activity such as URL access and HTTP method.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Express request object
+ * @param {string} req.username - Username extracted from session
+ * @param {string} req.originalUrl - Requested URL
+ * @param {string} req.method - HTTP method used (GET, POST)
+ * @param {Object} res - Express response object
+ * @param {Function} next - Next middleware function
+ * @returns {Promise<void>}
+ */
+async function securityLogger(req, res, next) {
+    let log = {
+        timestamp: new Date(),
+        username: req.username,
+        url: req.originalUrl,
+        method: req.method
+    }
+
+    await business.addSecurityLog(log)
+
+    next()
+}
+
 
 /**
  * GET /
@@ -85,7 +148,7 @@ async function checkSession(req, res, next) {
  * @function
  * @returns {Promise<void>}
  */
-app.get("/", checkSession, async(req, res) => {
+app.get("/", checkSession,securityLogger, async(req, res) => {
 
   let employees = await business.getAllEmployees()
 
@@ -105,7 +168,7 @@ app.get("/", checkSession, async(req, res) => {
  * @function
  * @returns {Promise<void>}
  */
-app.get("/employee/:id", checkSession,async(req, res) => {
+app.get("/employee/:id", checkSession,securityLogger, async(req, res) => {
 
   let employee = await business.findEmployee(req.params.id)
 
@@ -167,7 +230,7 @@ app.get("/employee/:id", checkSession,async(req, res) => {
  * @function
  * @returns {Promise<void>}
  */
-app.get("/edit/:id",checkSession,  async(req, res) => {
+app.get("/edit/:id",checkSession,securityLogger,  async(req, res) => {
 
   let employee = await business.findEmployee(req.params.id)
 
@@ -192,7 +255,7 @@ app.get("/edit/:id",checkSession,  async(req, res) => {
  * @function
  * @returns {Promise<void>}
  */
-app.post("/edit/:id", checkSession, async(req, res) => {
+app.post("/edit/:id", checkSession,securityLogger, async(req, res) => {
 
   let name = req.body.name.trim()
   let phone = req.body.phone.trim()
@@ -232,6 +295,30 @@ app.post("/edit/:id", checkSession, async(req, res) => {
   res.redirect("/")
 
 });
+
+/**
+ * GET /logout
+ * Logs out the authenticated user by deleting their session.
+ * Requires a valid session before execution.
+ *
+ * @async
+ * @function
+ * @param {Object} req - Express request object
+ * @param {Object} req.cookies - Cookies sent with the request
+ * @param {string} req.cookies.session - Session ID stored in cookies
+ * @param {string} req.username - Username set by checkSession middleware
+ * @param {Object} res - Express response object
+ * @returns {Promise<void>}
+ */
+app.get("/logout", checkSession, securityLogger,async (req, res) => {
+
+    let sessionId = req.cookies.session
+    await business.deleteSession(sessionId)
+    res.clearCookie("session")
+    res.redirect("/login?message=Logged%20out")
+
+})
+
 
 /**
  * Starts the Express server on port 8000.
