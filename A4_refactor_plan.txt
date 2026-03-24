@@ -1,0 +1,46 @@
+Collections That Will Change
+For Assignment 4 the structure changed, the employees collection will be changed by removing the employeeId field.
+The system will use the MongoDB _id field as the unique identifier for each employee.
+The shifts collection will also change. The shiftId field will be removed and the _id field will be used as the ID.
+A new field called employees will be added. This field will contain an array of ObjectIds that reference employees assigned to that shift.
+The assignments collection will be deleted because employee assignments will now be stored directly inside the shift documents.
+
+Persistence Functions That Must Be Modified or Removed
+Several persistence layer functions will need to be modified because the system will no longer use employeeId, shiftId,
+ or the assignments collection.
+Functions that will need modification include:
+•	findEmployee
+•	getAllEmployees
+•	getEmployeeShifts
+•	updateEmployee
+These functions ere using old ID fields and are updated to work with MongoDB _id values.
+Functions for the assignments collection are removed.
+
+Required Changes to Business Logic Functions
+The business logic layer does not require changes because mainly it contains pass through functions. 
+Effect of Embedded Arrays on Update Operations
+Using embedded arrays in the shift collection helps retrieving the data directly from the shift collection
+for the employees working those shifts.
+
+Transformation Program
+A transformation program called transform_db.js will be written
+to convert the existing Assignment 3 database structure into the new Assignment 4 format.
+The transformation process will follow three steps:
+The first function adds an empty employees array to each shift document.
+The second function will read the data from the assignments collection and insert the employee
+ObjectIds into the employees array of the their shifts.
+By using mongodb commands, the employeeId field will be removed from employees,
+the shiftId field will be removed from shifts, and the assignments collection will be deleted.
+Risks and Possible Complications
+One of the risk is related to the use of MongoDB ObjectIds. 
+Since ObjectIds are different from strings, the application must correctly convert IDs when performing queries.
+There is also a possibility of incorrect updates to the embedded employees array 
+if the transformation script does not insert the correct ObjectIds.
+After the transformation is completed, the application must be tested to ensure that all features from Assignment 3 still work correctly.
+Additional Features added
+User authentication will be implemented using a users collection that stores usernames and hashed passwords.
+Session management will be implemented.
+Sessions will have a 5 minute expiration time, and each user request will extend the session validity by 5 more minutes.
+All application routes will be protected so that users must be logged in before accessing them or modifying any information.
+A security log will also be implemented. A middleware function will record each request in a security_log collection, 
+including the timestamp, username, accessed URL, and HTTP method.
