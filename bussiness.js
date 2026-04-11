@@ -69,7 +69,7 @@ async function validateCredentials(username, password) {
         return false
     }
     let code = await generateCode()
-    persistence.addCode(username,code)
+    await persistence.addCode(username,code)
 
     return code
 }
@@ -140,7 +140,15 @@ async function extendSession(sessionId) {
 async function addSecurityLog(log) {
     await persistence.addSecurityLog(log)  
 }
-
+/**
+ * Validates a verification code for a given username by delegating
+ * the check to the persistence layer.
+ * 
+ * @param {string} username - The username associated with the verification code
+ * @param {string} code - The verification code entered by the user
+ * 
+ * @returns {Promise<boolean>} Returns true if the code is valid, otherwise false
+ */
 async function validateCode(username, code) {
     return await persistence.validateCode(username, code)
     

@@ -196,32 +196,62 @@ async function addSecurityLog(log) {
     await connectDatabase()
     await securityLogs.insertOne(log)
 }
-
+/**
+ * Generates and stores a verification code for a user,
+ * along with an expiry time 
+ * (default: 3 minutes from creation)
+ * 
+ * Creates an expiry timestamp 
+ * (current time + 3 minutes)
+ * Updates the user record with the new code and expiry time
+ * 
+ * @param {string} username - The username of the user
+ * @param {string} code - The verification code to be stored
+ * 
+ */
 async function addCode(username, code) {
     await connectDatabase()
     let codeExpiry = new Date(Date.now() + 1000 * 60 * 3)
     await users.updateOne({username: username},{$set:{code : code, codeExpiry: codeExpiry}})
     
 }
-
+/**
+ * Validates a user's verification code.
+ * 
+ * Retrieves the user by username. Checks if the verification code has expired
+ * If valid, Resets failed attempts and Removes stored code and expiry
+ * If invalid, Increments failed attempts, Sends warning email after multiple 
+ * failures and Blocks account after too many attempts
+ * 
+ * @param {string} username - The username of the user attempting verification
+ * @param {string} code - The verification code provided by the user
+ * 
+ * @returns Returns true if the code is valid and verification succeeds, otherwise false
+ * 
+ */
 async function validateCode(username, code) {
     await connectDatabase()
-    let user=users.findOne({username: username})
+    let user= await users.findOne({username: username})
+    if(new Date()> new Date(user.codeExpiry)){
+        await users.updateOne({username: username}, {$unset: {code:"", codeExpiry: ""}})
+        return false
+    }
     if (user.code == code && user.blockAccount == false){
-        await users.updateOne({username:username}, {$set:{failedAttempt: 0}})
+        await users.updateOne({username:username}, {$set:{failedAttempt: 0},$unset: {code:"", codeExpiry: ""}})
         return true
     }
 
     else{
-        if(user.failedAttempt == 3){
+        await users.updateOne({username:username}, {$inc:{failedAttempt: 1}})
+        if(user.failedAttempt == 2){
            await email.sendEmailFailedAttempt(username)
             
 
         }
-        if(user.failedAttempt == 10){
+        if(user.failedAttempt == 9){
             await users.updateOne({username:username}, {$set:{blockAccount: true}})
         }
-        await users.updateOne({username:username}, {$inc:{failedAttempt: 1}})
+       
         return false
     }
 }

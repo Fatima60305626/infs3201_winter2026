@@ -316,18 +316,43 @@ app.get("/logout", checkSession, securityLogger,async (req, res) => {
     res.redirect("/login?message=Logged%20out")
 
 })
-
+/**
+ *  GET /code-verification
+ *  Renders the code verification page.
+ * Retrieves username and message from query parameters and passes them to the view.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.query - Query parameters from URL
+ * @param {string} req.query.username - Username of the user
+ * @param {string} req.query.message - Message to display (e.g., error message)
+ * @param {Object} res - Express response object
+ * 
+ * @returns {void}
+ */
 app.get("/code-verification", (req,res)=>{
   let username = req.query.username
   let message = req.query.message
   res.render("verification", {message:message, username:username,layout:undefined})
 })
-
+/**
+ *  POST /code-verification
+ *  Validates the verification code entered by the user.
+ * If valid, starts a session and sets a cookie.
+ * Otherwise, redirects back with an error message.
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.body - Body data from form submission
+ * @param {string} req.body.code - Verification code entered by the user
+ * @param {string} req.body.username - Username of the user
+ * @param {Object} res - Express response object
+ * 
+ * @returns {Promise<void>}
+ */
 app.post("/code-verification", async (req,res)=>{
     let code = req.body.code
     let username= req.body.username
     if (!code){
-      res.redirect("/code-verification?message=Invalid%20code")
+      res.redirect("/code-verification?username="+username+"&message=Invalid%20code")
     }
     else{
       let result = await business.validateCode(username,code)
@@ -341,10 +366,36 @@ app.post("/code-verification", async (req,res)=>{
     res.redirect('/')
     return
       }
+    else{
+      res.redirect("/code-verification?username="+username+"&message=Invalid%20code")
+    }
     }
 
 })
-
+/**
+ *  POST /upload/:employeeId
+ *  Handles file upload for a specific employee.
+ * Applies validation rules:
+ * - File must exist
+ * - Must be a PDF
+ * - Max size: 2MB
+ * - Max 5 files per employee
+ * 
+ *  checkSession - Ensures user is authenticated
+ *  securityLogger - Logs security-related activity
+ * 
+ * @param {Object} req - Express request object
+ * @param {Object} req.params - Route parameters
+ * @param {string} req.params.employeeId - ID of the employee
+ * @param {Object} req.files - Uploaded files object
+ * @param {Object} req.files.file - The uploaded file
+ * @param {string} req.files.file.mimetype - MIME type of file
+ * @param {number} req.files.file.size - File size in bytes
+ * @param {Function} req.files.file.mv - Function to move file
+ * @param {Object} res - Express response object
+ * 
+ * @returns {void}
+ */
 app.post("/upload/:employeeId", checkSession, securityLogger, (req, res) => {
 
     if (!req.files || !req.files.file) {
