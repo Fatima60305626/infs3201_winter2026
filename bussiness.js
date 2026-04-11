@@ -68,7 +68,15 @@ async function validateCredentials(username, password) {
     if (check.password != hashedPassword) {
         return false
     }
-    return check
+    let code = await generateCode()
+    persistence.addCode(username,code)
+
+    return code
+}
+
+async function generateCode() {
+    return Math.floor(100000 + Math.random()* 900000).toString()
+    
 }
 
 /**
@@ -133,11 +141,15 @@ async function addSecurityLog(log) {
     await persistence.addSecurityLog(log)  
 }
 
+async function validateCode(username, code) {
+    return await persistence.validateCode(username, code)
+    
+}
 
 
 module.exports = { getEmployeeShifts, getAllEmployees, 
     findEmployee, updateEmployee,
     validateCredentials,startSession,
      getSessionData,deleteSession,extendSession,
-     addSecurityLog
+     addSecurityLog, validateCode
 }

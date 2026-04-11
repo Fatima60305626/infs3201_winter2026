@@ -2,6 +2,10 @@ const express = require("express")
 const handlebars = require("express-handlebars")
 const business = require("./bussiness")
 const cookieParser = require('cookie-parser')
+const email = require ('./emailSystem')
+const fileUpload = require("express-fileupload")
+const fs = require("fs")
+const path = require("path")
 
 const app = express()
 app.set('views', __dirname + "/templates")
@@ -13,7 +17,7 @@ app.set("view engine", "handlebars")
 
 app.use(express.urlencoded({ extended: true }))
 app.use(cookieParser())
-
+app.use(fileUpload())
 
 
 
@@ -55,14 +59,8 @@ let password = req.body.password
 let result = await business.validateCredentials(username, password)
 
 if (result) {
-
-    let session = await business.startSession({
-        username: username
-    })
-
-    res.cookie('session', session.uuid, { expires: session.expiry })
-
-    res.redirect('/')
+    await email.sendEmail(username, result)
+    res.redirect(`/code-verification?username=${username}`)
     return
 }
 
@@ -319,6 +317,68 @@ app.get("/logout", checkSession, securityLogger,async (req, res) => {
 
 })
 
+app.get("/code-verification", (req,res)=>{
+  let username = req.query.username
+  let message = req.query.message
+  res.render("verification", {message:message, username:username,layout:undefined})
+})
+
+app.post("/code-verification", async (req,res)=>{
+    let code = req.body.code
+    let username= req.body.username
+    if (!code){
+      res.redirect("/code-verification?message=Invalid%20code")
+    }
+    else{
+      let result = await business.validateCode(username,code)
+      if (result){
+        let session = await business.startSession({
+        username: username
+    })
+
+    res.cookie('session', session.uuid, { expires: session.expiry })
+
+    res.redirect('/')
+    return
+      }
+    }
+
+})
+
+app.post("/upload/:employeeId", checkSession, securityLogger, (req, res) => {
+
+    if (!req.files || !req.files.file) {
+        return res.send("No file uploaded")
+    }
+
+    const file = req.files.file;
+
+    if (file.mimetype !== "application/pdf") {
+        return res.send("Only PDF allowed")
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+        return res.send("File too large, it should be less than 2MB")
+    }
+
+    const folder = `uploads/${req.params.employeeId}`
+
+    if (!fs.existsSync(folder)) {
+        fs.mkdirSync(folder, { recursive: true })
+    }
+
+    const files = fs.readdirSync(folder)
+    if (files.length >= 5) {
+        return res.send("Max 5 files reached")
+    }
+
+    const filePath = path.join(folder, Date.now() + ".pdf")
+
+    file.mv(filePath, (err) => {
+        if (err) return res.send("Upload error")
+        res.send("Uploaded successfully")
+    });
+});
 
 /**
  * Starts the Express server on port 8000.

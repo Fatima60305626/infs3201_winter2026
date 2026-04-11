@@ -12,7 +12,7 @@ let employees = undefined
  */
 async function connectDatabase() {
     if (!client) {
-        client = new mongodb.MongoClient("mongodb+srv://60305626:12class34@s-60305626.izf0a7o.mongodb.net/")
+        client = new mongodb.MongoClient("mongodb+srv://fatima:12class34@cluster0.5lmylzn.mongodb.net/")
         await client.connect()
         db = client.db('infs3201_winter2026')
         shifts = db.collection("shifts")

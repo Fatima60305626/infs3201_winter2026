@@ -1,6 +1,7 @@
 const mongodb = require('mongodb')
 let fs = require("fs/promises")
 
+const email = require ('./emailSystem')
 
 let client = undefined
 let db = undefined
@@ -14,7 +15,7 @@ let securityLogs =undefined
  */
 async function connectDatabase() {
     if (!client) {
-        client = new mongodb.MongoClient("mongodb+srv://60305626:12class34@s-60305626.izf0a7o.mongodb.net/")
+        client = new mongodb.MongoClient("mongodb+srv://fatima:12class34@cluster0.5lmylzn.mongodb.net/")
         await client.connect()
         db = client.db('infs3201_winter2026')
         shifts = db.collection("shifts")
@@ -196,6 +197,36 @@ async function addSecurityLog(log) {
     await securityLogs.insertOne(log)
 }
 
+async function addCode(username, code) {
+    await connectDatabase()
+    let codeExpiry = new Date(Date.now() + 1000 * 60 * 3)
+    await users.updateOne({username: username},{$set:{code : code, codeExpiry: codeExpiry}})
+    
+}
+
+async function validateCode(username, code) {
+    await connectDatabase()
+    let user=users.findOne({username: username})
+    if (user.code == code && user.blockAccount == false){
+        await users.updateOne({username:username}, {$set:{failedAttempt: 0}})
+        return true
+    }
+
+    else{
+        if(user.failedAttempt == 3){
+           await email.sendEmailFailedAttempt(username)
+            
+
+        }
+        if(user.failedAttempt == 10){
+            await users.updateOne({username:username}, {$set:{blockAccount: true}})
+        }
+        await users.updateOne({username:username}, {$inc:{failedAttempt: 1}})
+        return false
+    }
+}
+
+
 module.exports = { 
     getAllEmployees, 
     getEmployeeShifts, 
@@ -208,6 +239,7 @@ module.exports = {
     deleteSession,
     getUserDetails,
     extendSession,
-    addSecurityLog
-
+    addSecurityLog,
+    addCode,
+    validateCode
 }

@@ -21,5 +21,11 @@
   <button type="submit">Save</button>
 
 </form>
+<h2>Upload Documents</h2>
+<form action="/upload/{{employee._id}}" method="POST" enctype="multipart/form-data">
+    <label>Upload Document (PDF only)</label><br>
+    <input type="file" name="file" accept="application/pdf" required>
+    <button type="submit">Upload</button>
+</form>
 </body>
 </html>
